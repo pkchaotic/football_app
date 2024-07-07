@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'api_service.dart';
 import 'login_screen.dart';
-import 'database_helper.dart';  // Import the DatabaseHelper
+import 'player_detail_screen.dart';
+import 'database_helper.dart';
 
 class CoachProfileScreen extends StatefulWidget {
   final int userId;
@@ -66,6 +67,11 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
 
   Future<void> addToWatchlist(int playerId) async {
     await apiService.watchPlayer(playerId, widget.userId);
+    await fetchWatchlist();
+  }
+
+  Future<void> removeFromWatchlist(int playerId) async {
+    await dbHelper.removeFromWatchList(playerId, widget.userId);
     await fetchWatchlist();
   }
 
@@ -136,12 +142,33 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
                 itemCount: watchlist.length,
                 itemBuilder: (context, index) {
                   final player = watchlist[index];
-                  return ListTile(
-                    title: Text(player['name']),
-                    subtitle: Text('Team: ${player['team']}'),
-                    onTap: () {
-                      // Implement navigation to player details
+                  return Dismissible(
+                    key: UniqueKey(),
+                    onDismissed: (direction) {
+                      removeFromWatchlist(player['id']);
                     },
+                    background: Container(color: Colors.red),
+                    child: ListTile(
+                      title: Text(player['name']),
+                      subtitle: Text('Team: ${player['team']}'),
+                      trailing: IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: () {
+                          removeFromWatchlist(player['id']);
+                        },
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PlayerDetailScreen(
+                              playerId: player['id'],
+                              userId: widget.userId,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   );
                 },
               ),
@@ -178,7 +205,15 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
                       },
                     ),
                     onTap: () {
-                      // Implement navigation to player details
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PlayerDetailScreen(
+                            playerId: player['id'],
+                            userId: widget.userId,
+                          ),
+                        ),
+                      );
                     },
                   );
                 },

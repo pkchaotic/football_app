@@ -200,6 +200,15 @@ class DatabaseHelper {
     return watchList;
   }
 
+  Future<void> removeFromWatchList(int playerId, int userId) async {
+    Database db = await instance.database;
+    await db.delete(
+      'watch_list',
+      where: 'playerId = ? AND userId = ?',
+      whereArgs: [playerId, userId],
+    );
+  }
+
   Future<List<Map<String, dynamic>>> searchPlayers(String query) async {
     Database db = await instance.database;
     return await db.query(
