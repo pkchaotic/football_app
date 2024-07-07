@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'api_service.dart';
-import 'login_screen.dart';
 import 'player_detail_screen.dart';
+import 'login_screen.dart';
 import 'database_helper.dart';
 
 class CoachProfileScreen extends StatefulWidget {
@@ -15,7 +15,7 @@ class CoachProfileScreen extends StatefulWidget {
 
 class _CoachProfileScreenState extends State<CoachProfileScreen> {
   final ApiService apiService = ApiService();
-  final DatabaseHelper dbHelper = DatabaseHelper.instance; // Initialize DatabaseHelper
+  final DatabaseHelper dbHelper = DatabaseHelper.instance;
   Map<String, dynamic>? coach;
   List<Map<String, dynamic>> watchlist = [];
   List<Map<String, dynamic>> searchResults = [];
@@ -26,7 +26,6 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   void initState() {
     super.initState();
     initializeData();
-    printWatchList();  // Call printWatchList in initState
   }
 
   Future<void> initializeData() async {
@@ -49,7 +48,6 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
     setState(() {
       watchlist = players;
     });
-    print('Fetched watchlist: $watchlist');
   }
 
   Future<void> searchPlayers(String query) async {
@@ -75,11 +73,6 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
     await fetchWatchlist();
   }
 
-  Future<void> printWatchList() async {
-    final watchListEntries = await dbHelper.getAllWatchListEntries();
-    print('Watch List Table: $watchListEntries');
-  }
-
   void logout() {
     Navigator.pushAndRemoveUntil(
       context,
@@ -93,128 +86,142 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(coach != null ? coach!['name'] : 'Loading...'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: logout,
+          ),
+        ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text(
-                'Menu',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.logout),
-              title: Text('Logout'),
-              onTap: logout,
-            ),
-          ],
-        ),
-      ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Padding(
+      body: Container(
+        color: Colors.green[400], // Background color
         padding: const EdgeInsets.all(16.0),
-        child: Column(
+        child: isLoading
+            ? Center(child: CircularProgressIndicator())
+            : Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Name: ${coach!['name']}',
-              style: TextStyle(
-                  fontSize: 20.0, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundImage: NetworkImage(
+                    coach!['photo'] ?? 'https://via.placeholder.com/150',
+                  ),
+                ),
+                SizedBox(width: 16.0),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Name: ${coach!['name']}',
+                      style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                    ),
+                    Text('Role: ${coach!['role']}'),
+                  ],
+                ),
+              ],
             ),
-            Text('Role: ${coach!['role']}'),
             SizedBox(height: 16.0),
             Text(
               'Watchlist',
-              style: TextStyle(
-                  fontSize: 18.0, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
             ),
+            SizedBox(height: 10.0),
+            TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                labelText: 'Search Players',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.search),
+              ),
+              onChanged: (query) {
+                searchPlayers(query);
+              },
+            ),
+            if (searchResults.isNotEmpty)
+              Container(
+                constraints: BoxConstraints(maxHeight: 200),
+                child: Card(
+                  margin: EdgeInsets.only(top: 8.0),
+                  child: ListView.builder(
+                    itemCount: searchResults.length,
+                    itemBuilder: (context, index) {
+                      final player = searchResults[index];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundImage: NetworkImage(
+                            player['photo'] ?? 'https://via.placeholder.com/150',
+                          ),
+                        ),
+                        title: Text(player['name']),
+                        subtitle: Text('Team: ${player['team']}'),
+                        trailing: IconButton(
+                          icon: Icon(Icons.add),
+                          onPressed: () {
+                            addToWatchlist(player['id']);
+                          },
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PlayerDetailScreen(
+                                playerId: player['id'],
+                                userId: widget.userId,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
             Expanded(
               child: ListView.builder(
                 itemCount: watchlist.length,
                 itemBuilder: (context, index) {
                   final player = watchlist[index];
                   return Dismissible(
-                    key: UniqueKey(),
+                    key: Key(player['id'].toString()),
+                    direction: DismissDirection.endToStart,
                     onDismissed: (direction) {
                       removeFromWatchlist(player['id']);
-                    },
-                    background: Container(color: Colors.red),
-                    child: ListTile(
-                      title: Text(player['name']),
-                      subtitle: Text('Team: ${player['team']}'),
-                      trailing: IconButton(
-                        icon: Icon(Icons.delete),
-                        onPressed: () {
-                          removeFromWatchlist(player['id']);
-                        },
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PlayerDetailScreen(
-                              playerId: player['id'],
-                              userId: widget.userId,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-            SizedBox(height: 16.0),
-            TextField(
-              controller: searchController,
-              decoration: InputDecoration(
-                labelText: 'Search Players',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (query) {
-                if (query.isNotEmpty) {
-                  searchPlayers(query);
-                } else {
-                  setState(() {
-                    searchResults = [];
-                  });
-                }
-              },
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: searchResults.length,
-                itemBuilder: (context, index) {
-                  final player = searchResults[index];
-                  return ListTile(
-                    title: Text(player['name'] ?? 'Unknown'),
-                    subtitle: Text('Team: ${player['team'] ?? 'Unknown'}'),
-                    trailing: IconButton(
-                      icon: Icon(Icons.add),
-                      onPressed: () {
-                        addToWatchlist(player['id']);
-                      },
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PlayerDetailScreen(
-                            playerId: player['id'],
-                            userId: widget.userId,
-                          ),
-                        ),
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('${player['name']} removed from watchlist')),
                       );
                     },
+                    background: Container(
+                      color: Colors.red,
+                      alignment: Alignment.centerRight,
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Icon(Icons.delete, color: Colors.white),
+                    ),
+                    child: Card(
+                      color: Colors.lightBlue[50], // Custom card color
+                      margin: EdgeInsets.symmetric(vertical: 8.0),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundImage: NetworkImage(
+                            player['photo'] ?? 'https://via.placeholder.com/150',
+                          ),
+                        ),
+                        title: Text(player['name']),
+                        subtitle: Text('Team: ${player['team']}'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PlayerDetailScreen(
+                                playerId: player['id'],
+                                userId: widget.userId,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   );
                 },
               ),

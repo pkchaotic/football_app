@@ -90,35 +90,42 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
       ),
       body: player == null
           ? Center(child: CircularProgressIndicator())
-          : Padding(
+          : Container(
+        color: Colors.green[400],
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Image.network(player!['photo'] ?? 'https://via.placeholder.com/150'),
+              Center(
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundImage: NetworkImage(player!['photo'] ?? 'https://via.placeholder.com/150'),
+                ),
+              ),
               SizedBox(height: 16.0),
-              Text(
-                player!['name'] ?? 'Unknown',
-                style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+              Center(
+                child: Text(
+                  player!['name'] ?? 'Unknown',
+                  style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+                ),
               ),
               SizedBox(height: 8.0),
-              Text('Team: ${player!['team'] ?? 'Unknown'}'),
-              Text('Age: ${player!['age'] ?? 'Unknown'}'),
-              Text('Nationality: ${player!['nationality'] ?? 'Unknown'}'),
-              Text('Games Played: ${player!['games_played'] ?? 'Unknown'}'),
-              Text('Goals: ${player!['goals'] ?? 'Unknown'}'),
-              Text('Assists: ${player!['assists'] ?? 'Unknown'}'),
-              if (player!['rating'] != null)
-                Text('Rating: ${player!['rating']!.toStringAsFixed(2)}'),
+              buildCard('Team', player!['team']),
+              buildCard('Age', player!['age'].toString()),
+              buildCard('Nationality', player!['nationality']),
+              buildCard('Games Played', player!['games_played'].toString()),
+              buildCard('Goals', player!['goals'].toString()),
+              buildCard('Assists', player!['assists'].toString()),
+              if (player!['rating'] != null) buildCard('Rating', player!['rating']!.toStringAsFixed(2)),
               if (agent != null) ...[
                 SizedBox(height: 16.0),
                 Text(
                   'Agent Information',
                   style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
                 ),
-                Text('Agent Name: ${agent!['name']}'),
-                Text('Agent Email: ${agent!['email']}'),
+                buildCard('Agent Name', agent!['name']),
+                buildCard('Agent Email', agent!['email']),
               ],
               SizedBox(height: 16.0),
               Text(
@@ -130,6 +137,17 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget buildCard(String title, String subtitle) {
+    return Card(
+      color: Colors.lightBlue[50],
+      margin: EdgeInsets.symmetric(vertical: 8.0),
+      child: ListTile(
+        title: Text(title),
+        subtitle: Text(subtitle),
       ),
     );
   }

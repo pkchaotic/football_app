@@ -86,48 +86,98 @@ class _AgentProfileScreenState extends State<AgentProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(agent != null ? agent!['name'] : 'Loading...'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: logout,
+          ),
+        ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text(
-                'Menu',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.logout),
-              title: Text('Logout'),
-              onTap: logout,
-            ),
-          ],
-        ),
-      ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Padding(
+      body: Container(
+        color: Colors.green[400], // Background color
         padding: const EdgeInsets.all(16.0),
-        child: Column(
+        child: isLoading
+            ? Center(child: CircularProgressIndicator())
+            : Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Name: ${agent!['name']}',
-              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundImage: NetworkImage(
+                    agent!['photo'] ?? 'https://via.placeholder.com/150',
+                  ),
+                ),
+                SizedBox(width: 16.0),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Name: ${agent!['name']}',
+                      style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                    ),
+                    Text('Role: ${agent!['role']}'),
+                  ],
+                ),
+              ],
             ),
-            Text('Role: ${agent!['role']}'),
             SizedBox(height: 16.0),
             Text(
               'Portfolio',
               style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
             ),
+            SizedBox(height: 10.0),
+            TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                labelText: 'Search Players',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.search),
+              ),
+              onChanged: (query) {
+                searchPlayers(query);
+              },
+            ),
+            if (searchResults.isNotEmpty)
+              Container(
+                constraints: BoxConstraints(maxHeight: 200),
+                child: Card(
+                  margin: EdgeInsets.only(top: 8.0),
+                  child: ListView.builder(
+                    itemCount: searchResults.length,
+                    itemBuilder: (context, index) {
+                      final player = searchResults[index];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundImage: NetworkImage(
+                            player['photo'] ?? 'https://via.placeholder.com/150',
+                          ),
+                        ),
+                        title: Text(player['name']),
+                        subtitle: Text('Team: ${player['team']}'),
+                        trailing: IconButton(
+                          icon: Icon(Icons.add),
+                          onPressed: () {
+                            addToPortfolio(player['id']);
+                          },
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PlayerDetailScreen(
+                                playerId: player['id'],
+                                userId: widget.userId,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
             Expanded(
               child: ListView.builder(
                 itemCount: portfolio.length,
@@ -148,67 +198,30 @@ class _AgentProfileScreenState extends State<AgentProfileScreen> {
                       padding: EdgeInsets.symmetric(horizontal: 20),
                       child: Icon(Icons.delete, color: Colors.white),
                     ),
-                    child: ListTile(
-                      title: Text(player['name']),
-                      subtitle: Text('Team: ${player['team']}'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PlayerDetailScreen(
-                              playerId: player['id'],
-                              userId: widget.userId,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-            SizedBox(height: 16.0),
-            TextField(
-              controller: searchController,
-              decoration: InputDecoration(
-                labelText: 'Search Players',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (query) {
-                if (query.isNotEmpty) {
-                  searchPlayers(query);
-                } else {
-                  setState(() {
-                    searchResults = [];
-                  });
-                }
-              },
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: searchResults.length,
-                itemBuilder: (context, index) {
-                  final player = searchResults[index];
-                  return ListTile(
-                    title: Text(player['name']),
-                    subtitle: Text('Team: ${player['team']}'),
-                    trailing: IconButton(
-                      icon: Icon(Icons.add),
-                      onPressed: () {
-                        addToPortfolio(player['id']);
-                      },
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PlayerDetailScreen(
-                            playerId: player['id'],
-                            userId: widget.userId,
+                    child: Card(
+                      color: Colors.lightBlue[50], // Custom card color
+                      margin: EdgeInsets.symmetric(vertical: 8.0),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundImage: NetworkImage(
+                            player['photo'] ?? 'https://via.placeholder.com/150',
                           ),
                         ),
-                      );
-                    },
+                        title: Text(player['name']),
+                        subtitle: Text('Team: ${player['team']}'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PlayerDetailScreen(
+                                playerId: player['id'],
+                                userId: widget.userId,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   );
                 },
               ),
