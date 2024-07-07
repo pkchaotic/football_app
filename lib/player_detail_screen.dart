@@ -4,8 +4,9 @@ import 'api_service.dart';
 
 class PlayerDetailScreen extends StatefulWidget {
   final int playerId;
+  final int userId;
 
-  PlayerDetailScreen({required this.playerId});
+  PlayerDetailScreen({required this.playerId, required this.userId});
 
   @override
   _PlayerDetailScreenState createState() => _PlayerDetailScreenState();
@@ -22,10 +23,17 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
   }
 
   Future<void> fetchPlayer() async {
-    final playerData = await apiService.fetchPlayerStats(widget.playerId, 2023);
-    setState(() {
-      player = playerData;
-    });
+    try {
+      final playerData = await apiService.fetchPlayerStats(widget.playerId, 2023);
+      setState(() {
+        player = playerData;
+      });
+    } catch (e) {
+      print(e);
+      setState(() {
+        player = {};
+      });
+    }
   }
 
   double calculateShotAccuracy(Map<String, dynamic> player) {
@@ -57,17 +65,14 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
     int yellowRedCards = player['cards_yellowred'] ?? 0;
     int redCards = player['cards_red'] ?? 0;
 
-    // Gewichtung der einzelnen Faktoren
     double tackleWeight = 1;
     double foulWeight = 1;
     double yellowCardPenalty = 1;
     double yellowRedCardPenalty = 2;
     double redCardPenalty = 3;
 
-    // Berechnung des Fairness-Scores
     double fairnessScore = (fouls * foulWeight) / ((tackles * tackleWeight) - (yellowCards * yellowCardPenalty) - (yellowRedCards * yellowRedCardPenalty) - (redCards * redCardPenalty));
 
-    // Fairness Score normalisieren und sicherstellen, dass er zwischen 0 und 100 liegt
     if (fairnessScore < 0) fairnessScore = 0;
     if (fairnessScore > 1) fairnessScore = 1;
 
@@ -78,7 +83,7 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(player != null ? player!['name'] : 'Loading...'),
+        title: Text(player != null && player!['name'] != null ? player!['name'] : 'Loading...'),
       ),
       body: player == null
           ? Center(child: CircularProgressIndicator())
@@ -126,7 +131,7 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
     print("Shot Accuracy: $shotAccuracy, Pass Accuracy: $passAccuracy, Dribble Success: $dribbleSuccess, Fairness: $fairness");
 
     return SizedBox(
-      height: 300, // Feste Höhe für das Radar-Diagramm
+      height: 300,
       child: RadarChart.light(
         ticks: [0, 20, 40, 60, 80, 100],
         features: ['Shot Accuracy', 'Pass Accuracy', 'Dribble Success', 'Fairness'],

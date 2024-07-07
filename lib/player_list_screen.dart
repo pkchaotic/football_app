@@ -3,47 +3,28 @@ import 'api_service.dart';
 import 'player_detail_screen.dart';
 
 class PlayerListScreen extends StatefulWidget {
+  final int userId;
+
+  PlayerListScreen({required this.userId});
+
   @override
   _PlayerListScreenState createState() => _PlayerListScreenState();
 }
 
 class _PlayerListScreenState extends State<PlayerListScreen> {
   final ApiService apiService = ApiService();
-  List<dynamic> allPlayers = [];
-  List<dynamic> filteredPlayers = [];
-  TextEditingController searchController = TextEditingController();
-  bool isLoading = false;
+  List<Map<String, dynamic>> players = [];
 
   @override
   void initState() {
     super.initState();
-    loadPlayers();
-    searchController.addListener(() {
-      filterPlayers();
-    });
+    fetchPlayers();
   }
 
-  Future<void> loadPlayers() async {
+  Future<void> fetchPlayers() async {
+    final playerList = await apiService.getAllPlayersFromDB();
     setState(() {
-      isLoading = true;
-    });
-    await apiService.fetchAndStorePlayers();
-    final players = await apiService.getAllPlayersFromDB();
-    setState(() {
-      allPlayers = players;
-      filterPlayers();
-      isLoading = false;
-    });
-  }
-
-  void filterPlayers() {
-    final query = searchController.text.toLowerCase();
-    setState(() {
-      filteredPlayers = allPlayers.where((player) {
-        final playerName = player['name'].toLowerCase();
-        final teamName = player['team'].toLowerCase();
-        return playerName.contains(query) || teamName.contains(query);
-      }).toList();
+      players = playerList;
     });
   }
 
@@ -51,62 +32,27 @@ class _PlayerListScreenState extends State<PlayerListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Players'),
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(kToolbarHeight),
-          child: Row(
-            children: [
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextField(
-                    controller: searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search for players or teams...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      prefixIcon: Icon(Icons.search),
-                    ),
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.clear),
-                onPressed: () {
-                  searchController.clear();
-                },
-              ),
-            ],
-          ),
-        ),
+        title: Text('Player List'),
       ),
-      body: isLoading
+      body: players.isEmpty
           ? Center(child: CircularProgressIndicator())
           : ListView.builder(
-        itemCount: filteredPlayers.length,
+        itemCount: players.length,
         itemBuilder: (context, index) {
-          final player = filteredPlayers[index];
+          final player = players[index];
           return ListTile(
-            leading: Image.network(player['photo'] ?? 'https://via.placeholder.com/150'),
-            title: Text(player['name'] ?? 'Unknown'),
-            subtitle: Text(player['team'] ?? 'Unknown'),
+            title: Text(player['name']),
+            subtitle: Text('Team: ${player['team']}'),
             onTap: () {
-              final playerId = player['id'];
-              if (playerId != null && playerId is int) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => PlayerDetailScreen(playerId: playerId),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PlayerDetailScreen(
+                    playerId: player['id'],
+                    userId: widget.userId,
                   ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Invalid player ID')),
-                );
-              }
+                ),
+              );
             },
           );
         },

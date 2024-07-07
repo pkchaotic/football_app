@@ -1,0 +1,36 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Agent John Doe",
+      "email": "agent.johndoe@example.com",
+      "password": "password123",
+      "role": "agent",
+      "assignedPlayers": [101, 102]
+    },
+    {
+      "id": 2,
+      "name": "Agent Jane Smith",
+      "email": "agent.janesmith@example.com",
+      "password": "password123",
+      "role": "agent",
+      "assignedPlayers": [103, 104]
+    },
+    {
+      "id": 3,
+      "name": "Coach Mike Johnson",
+      "email": "coach.mikejohnson@example.com",
+      "password": "password123",
+      "role": "coach",
+      "team": "Team A"
+    },
+    {
+      "id": 4,
+      "name": "Coach Emily Davis",
+      "email": "coach.emilydavis@example.com",
+      "password": "password123",
+      "role": "coach",
+      "team": "Team B"
+    }
+  ]
+}
