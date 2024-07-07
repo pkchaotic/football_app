@@ -26,14 +26,10 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
   Future<void> fetchPlayer() async {
     try {
       final playerData = await apiService.fetchPlayerStats(widget.playerId, 2023);
-      if (playerData['agentId'] != null) {
-        final agentData = await apiService.getUserById(playerData['agentId']);
-        setState(() {
-          agent = agentData;
-        });
-      }
+      final agentData = await apiService.getAgentByPlayerId(widget.playerId);
       setState(() {
         player = playerData;
+        agent = agentData;
       });
     } catch (e) {
       print(e);

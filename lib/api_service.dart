@@ -170,7 +170,52 @@ class ApiService {
     }
   }
 
+  Future<void> addToPortfolio(int playerId, int userId) async {
+    print('Adding player: $playerId to portfolio for user: $userId');
+    await dbHelper.addToPortfolio(playerId, userId);
+    print('Player added to portfolio.');
+  }
 
+  Future<List<Map<String, dynamic>>> getPlayerPortfolio(int userId) async {
+    try {
+      final portfolioEntries = await dbHelper.getPortfolio(userId);
+      List<Map<String, dynamic>> portfolioWithDetails = [];
+      print('ApiService: Raw portfolioEntries: $portfolioEntries');
+
+      for (var entry in portfolioEntries) {
+        final playerId = entry['id'];
+        if (playerId != null && playerId is int) {
+          print('ApiService: Found playerId $playerId in portfolio');
+          final playerDetails = await dbHelper.getPlayer(playerId);
+          if (playerDetails != null) {
+            portfolioWithDetails.add(playerDetails);
+            print('ApiService: Player details added for playerId $playerId');
+          } else {
+            print('ApiService: No player details found for playerId $playerId');
+          }
+        } else {
+          print('ApiService: playerId is null or not an int for entry $entry');
+        }
+      }
+
+      print('ApiService: Portfolio fetched: $portfolioWithDetails');
+      return portfolioWithDetails;
+    } catch (e) {
+      print('ApiService: Error fetching portfolio: $e');
+      throw e;
+    }
+  }
+
+  Future<void> removeFromPortfolio(int playerId, int userId) async {
+    print('Removing player: $playerId from portfolio for user: $userId');
+    await dbHelper.removeFromPortfolio(playerId, userId);
+    print('Player removed from portfolio.');
+  }
+
+  Future<Map<String, dynamic>?> getAgentByPlayerId(int playerId) async {
+    final agent = await dbHelper.getAgentByPlayerId(playerId);
+    return agent;
+  }
 
   Future<List<Map<String, dynamic>>> searchPlayers(String query) async {
     print('Searching players with query: $query');
@@ -190,3 +235,4 @@ class ApiService {
     }
   }
 }
+

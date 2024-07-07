@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'api_service.dart';
 import 'player_detail_screen.dart';
 import 'login_screen.dart';
+import 'database_helper.dart';
 
 class AgentProfileScreen extends StatefulWidget {
   final int userId;
@@ -14,6 +15,7 @@ class AgentProfileScreen extends StatefulWidget {
 
 class _AgentProfileScreenState extends State<AgentProfileScreen> {
   final ApiService apiService = ApiService();
+  final DatabaseHelper dbHelper = DatabaseHelper.instance;
   Map<String, dynamic>? agent;
   List<Map<String, dynamic>> portfolio = [];
   List<Map<String, dynamic>> searchResults = [];
@@ -42,7 +44,7 @@ class _AgentProfileScreenState extends State<AgentProfileScreen> {
   }
 
   Future<void> fetchPortfolio() async {
-    final players = await apiService.getPlayerClaims(widget.userId);
+    final players = await apiService.getPlayerPortfolio(widget.userId);
     setState(() {
       portfolio = players;
     });
@@ -62,7 +64,12 @@ class _AgentProfileScreenState extends State<AgentProfileScreen> {
   }
 
   Future<void> addToPortfolio(int playerId) async {
-    await apiService.claimPlayer(playerId, widget.userId);
+    await apiService.addToPortfolio(playerId, widget.userId);
+    await fetchPortfolio();
+  }
+
+  Future<void> removeFromPortfolio(int playerId) async {
+    await apiService.removeFromPortfolio(playerId, widget.userId);
     await fetchPortfolio();
   }
 
@@ -126,20 +133,36 @@ class _AgentProfileScreenState extends State<AgentProfileScreen> {
                 itemCount: portfolio.length,
                 itemBuilder: (context, index) {
                   final player = portfolio[index];
-                  return ListTile(
-                    title: Text(player['name']),
-                    subtitle: Text('Team: ${player['team']}'),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PlayerDetailScreen(
-                            playerId: player['id'],
-                            userId: widget.userId,
-                          ),
-                        ),
+                  return Dismissible(
+                    key: Key(player['id'].toString()),
+                    direction: DismissDirection.endToStart,
+                    onDismissed: (direction) {
+                      removeFromPortfolio(player['id']);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('${player['name']} removed from portfolio')),
                       );
                     },
+                    background: Container(
+                      color: Colors.red,
+                      alignment: Alignment.centerRight,
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Icon(Icons.delete, color: Colors.white),
+                    ),
+                    child: ListTile(
+                      title: Text(player['name']),
+                      subtitle: Text('Team: ${player['team']}'),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PlayerDetailScreen(
+                              playerId: player['id'],
+                              userId: widget.userId,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   );
                 },
               ),
