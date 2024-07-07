@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'api_service.dart';
-import 'player_detail_screen.dart';
 import 'login_screen.dart';
+import 'database_helper.dart';  // Import the DatabaseHelper
 
-class AgentProfileScreen extends StatefulWidget {
+class CoachProfileScreen extends StatefulWidget {
   final int userId;
 
-  AgentProfileScreen({required this.userId});
+  CoachProfileScreen({required this.userId});
 
   @override
-  _AgentProfileScreenState createState() => _AgentProfileScreenState();
+  _CoachProfileScreenState createState() => _CoachProfileScreenState();
 }
 
-class _AgentProfileScreenState extends State<AgentProfileScreen> {
+class _CoachProfileScreenState extends State<CoachProfileScreen> {
   final ApiService apiService = ApiService();
-  Map<String, dynamic>? agent;
-  List<Map<String, dynamic>> portfolio = [];
+  final DatabaseHelper dbHelper = DatabaseHelper.instance; // Initialize DatabaseHelper
+  Map<String, dynamic>? coach;
+  List<Map<String, dynamic>> watchlist = [];
   List<Map<String, dynamic>> searchResults = [];
   TextEditingController searchController = TextEditingController();
   bool isLoading = true;
@@ -24,28 +25,30 @@ class _AgentProfileScreenState extends State<AgentProfileScreen> {
   void initState() {
     super.initState();
     initializeData();
+    printWatchList();  // Call printWatchList in initState
   }
 
   Future<void> initializeData() async {
-    await fetchAgent();
-    await fetchPortfolio();
+    await fetchCoach();
+    await fetchWatchlist();
     setState(() {
       isLoading = false;
     });
   }
 
-  Future<void> fetchAgent() async {
-    final agentData = await apiService.getUserById(widget.userId);
+  Future<void> fetchCoach() async {
+    final coachData = await apiService.getUserById(widget.userId);
     setState(() {
-      agent = agentData;
+      coach = coachData;
     });
   }
 
-  Future<void> fetchPortfolio() async {
-    final players = await apiService.getPlayerClaims(widget.userId);
+  Future<void> fetchWatchlist() async {
+    final players = await apiService.getPlayerWatchList(widget.userId);
     setState(() {
-      portfolio = players;
+      watchlist = players;
     });
+    print('Fetched watchlist: $watchlist');
   }
 
   Future<void> searchPlayers(String query) async {
@@ -61,9 +64,14 @@ class _AgentProfileScreenState extends State<AgentProfileScreen> {
     }
   }
 
-  Future<void> addToPortfolio(int playerId) async {
-    await apiService.claimPlayer(playerId, widget.userId);
-    await fetchPortfolio();
+  Future<void> addToWatchlist(int playerId) async {
+    await apiService.watchPlayer(playerId, widget.userId);
+    await fetchWatchlist();
+  }
+
+  Future<void> printWatchList() async {
+    final watchListEntries = await dbHelper.getAllWatchListEntries();
+    print('Watch List Table: $watchListEntries');
   }
 
   void logout() {
@@ -78,7 +86,7 @@ class _AgentProfileScreenState extends State<AgentProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(agent != null ? agent!['name'] : 'Loading...'),
+        title: Text(coach != null ? coach!['name'] : 'Loading...'),
       ),
       drawer: Drawer(
         child: ListView(
@@ -112,33 +120,27 @@ class _AgentProfileScreenState extends State<AgentProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Name: ${agent!['name']}',
-              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+              'Name: ${coach!['name']}',
+              style: TextStyle(
+                  fontSize: 20.0, fontWeight: FontWeight.bold),
             ),
-            Text('Role: ${agent!['role']}'),
+            Text('Role: ${coach!['role']}'),
             SizedBox(height: 16.0),
             Text(
-              'Portfolio',
-              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+              'Watchlist',
+              style: TextStyle(
+                  fontSize: 18.0, fontWeight: FontWeight.bold),
             ),
             Expanded(
               child: ListView.builder(
-                itemCount: portfolio.length,
+                itemCount: watchlist.length,
                 itemBuilder: (context, index) {
-                  final player = portfolio[index];
+                  final player = watchlist[index];
                   return ListTile(
                     title: Text(player['name']),
                     subtitle: Text('Team: ${player['team']}'),
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PlayerDetailScreen(
-                            playerId: player['id'],
-                            userId: widget.userId,
-                          ),
-                        ),
-                      );
+                      // Implement navigation to player details
                     },
                   );
                 },
@@ -167,24 +169,16 @@ class _AgentProfileScreenState extends State<AgentProfileScreen> {
                 itemBuilder: (context, index) {
                   final player = searchResults[index];
                   return ListTile(
-                    title: Text(player['name']),
-                    subtitle: Text('Team: ${player['team']}'),
+                    title: Text(player['name'] ?? 'Unknown'),
+                    subtitle: Text('Team: ${player['team'] ?? 'Unknown'}'),
                     trailing: IconButton(
                       icon: Icon(Icons.add),
                       onPressed: () {
-                        addToPortfolio(player['id']);
+                        addToWatchlist(player['id']);
                       },
                     ),
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PlayerDetailScreen(
-                            playerId: player['id'],
-                            userId: widget.userId,
-                          ),
-                        ),
-                      );
+                      // Implement navigation to player details
                     },
                   );
                 },

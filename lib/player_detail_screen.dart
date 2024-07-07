@@ -15,6 +15,7 @@ class PlayerDetailScreen extends StatefulWidget {
 class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
   final ApiService apiService = ApiService();
   Map<String, dynamic>? player;
+  Map<String, dynamic>? agent;
 
   @override
   void initState() {
@@ -25,6 +26,12 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
   Future<void> fetchPlayer() async {
     try {
       final playerData = await apiService.fetchPlayerStats(widget.playerId, 2023);
+      if (playerData['agentId'] != null) {
+        final agentData = await apiService.getUserById(playerData['agentId']);
+        setState(() {
+          agent = agentData;
+        });
+      }
       setState(() {
         player = playerData;
       });
@@ -108,6 +115,15 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
               Text('Assists: ${player!['assists'] ?? 'Unknown'}'),
               if (player!['rating'] != null)
                 Text('Rating: ${player!['rating']!.toStringAsFixed(2)}'),
+              if (agent != null) ...[
+                SizedBox(height: 16.0),
+                Text(
+                  'Agent Information',
+                  style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                ),
+                Text('Agent Name: ${agent!['name']}'),
+                Text('Agent Email: ${agent!['email']}'),
+              ],
               SizedBox(height: 16.0),
               Text(
                 'Player Performance',

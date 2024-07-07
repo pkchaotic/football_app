@@ -162,7 +162,6 @@ class DatabaseHelper {
       whereArgs: [userId],
     );
   }
-
   Future<void> addToWatchList(int playerId, int userId) async {
     Database db = await instance.database;
     await db.insert(
@@ -173,15 +172,32 @@ class DatabaseHelper {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    print('DatabaseHelper: Player $playerId added to watchlist for user $userId');
   }
 
   Future<List<Map<String, dynamic>>> getWatchList(int userId) async {
     Database db = await instance.database;
-    return await db.query(
+    final watchListEntries = await db.query(
       'watch_list',
       where: 'userId = ?',
       whereArgs: [userId],
     );
+
+    List<Map<String, dynamic>> watchList = [];
+    for (var entry in watchListEntries) {
+      final playerId = entry['playerId'] as int?;
+      if (playerId != null) {
+        final player = await getPlayer(playerId);
+        if (player != null) {
+          watchList.add(player);
+        }
+      } else {
+        print('DatabaseHelper: playerId is null or not an int for entry $entry');
+      }
+    }
+
+    print('DatabaseHelper: Watchlist from DB: $watchList');
+    return watchList;
   }
 
   Future<List<Map<String, dynamic>>> searchPlayers(String query) async {
@@ -191,5 +207,10 @@ class DatabaseHelper {
       where: 'name LIKE ?',
       whereArgs: ['%$query%'],
     );
+  }
+  Future<List<Map<String, dynamic>>> getAllWatchListEntries() async {
+    Database db = await instance.database;
+    final watchListEntries = await db.query('watch_list');
+    return watchListEntries;
   }
 }

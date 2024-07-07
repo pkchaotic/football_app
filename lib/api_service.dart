@@ -73,6 +73,7 @@ class ApiService {
   Future<Map<String, dynamic>> fetchPlayerStats(int playerId, int season) async {
     final localData = await dbHelper.getPlayer(playerId);
     if (localData != null) {
+      print('Player stats fetched from local DB: $localData');
       return localData;
     }
 
@@ -112,6 +113,7 @@ class ApiService {
       };
 
       await dbHelper.insertPlayers([player]);
+      print('Player stats fetched from API and stored in local DB: $player');
 
       return player;
     } else {
@@ -120,28 +122,68 @@ class ApiService {
   }
 
   Future<void> claimPlayer(int playerId, int userId) async {
+    print('Claiming player: $playerId for user: $userId');
     await dbHelper.claimPlayer(playerId, userId);
+    print('Player claimed.');
   }
 
   Future<List<Map<String, dynamic>>> getPlayerClaims(int userId) async {
-    return await dbHelper.getPlayerClaims(userId);
+    print('Fetching player claims for user: $userId');
+    final claims = await dbHelper.getPlayerClaims(userId);
+    print('Player claims fetched: $claims');
+    return claims;
   }
 
   Future<void> watchPlayer(int playerId, int userId) async {
+    print('Adding player: $playerId to watchlist for user: $userId');
     await dbHelper.addToWatchList(playerId, userId);
+    print('Player added to watchlist.');
   }
 
   Future<List<Map<String, dynamic>>> getPlayerWatchList(int userId) async {
-    return await dbHelper.getWatchList(userId);
+    try {
+      final watchListEntries = await dbHelper.getWatchList(userId);
+      List<Map<String, dynamic>> watchListWithDetails = [];
+      print('ApiService: Raw watchListEntries: $watchListEntries');
+
+      for (var entry in watchListEntries) {
+        final playerId = entry['id'];
+        if (playerId != null && playerId is int) {
+          print('ApiService: Found playerId $playerId in watchlist');
+          final playerDetails = await dbHelper.getPlayer(playerId);
+          if (playerDetails != null) {
+            watchListWithDetails.add(playerDetails);
+            print('ApiService: Player details added for playerId $playerId');
+          } else {
+            print('ApiService: No player details found for playerId $playerId');
+          }
+        } else {
+          print('ApiService: playerId is null or not an int for entry $entry');
+        }
+      }
+
+      print('ApiService: Watchlist fetched: $watchListWithDetails');
+      return watchListWithDetails;
+    } catch (e) {
+      print('ApiService: Error fetching watchlist: $e');
+      throw e;
+    }
   }
 
+
+
   Future<List<Map<String, dynamic>>> searchPlayers(String query) async {
-    return await dbHelper.searchPlayers(query);
+    print('Searching players with query: $query');
+    final results = await dbHelper.searchPlayers(query);
+    print('Search results: $results');
+    return results;
   }
 
   Future<Map<String, dynamic>> getUserById(int userId) async {
+    print('Fetching user by ID: $userId');
     final user = await dbHelper.getUserById(userId);
     if (user != null) {
+      print('User fetched: $user');
       return user;
     } else {
       throw Exception('User not found');
